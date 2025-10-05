@@ -1,3 +1,8 @@
+// BACKUP CREATED: 2025-10-05
+// ORIGINAL PATH: src/app/api/ai/analytics-summary/route.ts
+// CRITICAL FILE - DO NOT DELETE
+// This is the AI-powered analytics summary endpoint using Groq API
+
 import { NextRequest, NextResponse } from "next/server";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
@@ -20,6 +25,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Build context from data
         let dataContext = `Analyze this climate data and provide a concise summary (max 3 sentences):
 
 Global Metrics:
@@ -76,6 +82,7 @@ Global Metrics:
         const data = await response.json();
         const aiSummary = data.choices?.[0]?.message?.content || "Analysis complete. Data shows climate trends requiring attention.";
 
+        // Calculate confidence based on data completeness
         let confidence = 70;
         if (metrics.co2Average > 0) confidence += 5;
         if (metrics.ndviIndex > 0) confidence += 5;
@@ -95,6 +102,7 @@ Global Metrics:
     } catch (error: any) {
         console.error("AI Analytics Summary Error:", error);
 
+        // Fallback response
         const body = await req.json().catch(() => ({}));
         const metrics = body.metrics || {};
 
