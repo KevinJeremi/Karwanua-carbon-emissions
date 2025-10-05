@@ -88,7 +88,7 @@ export function LocationCard({ location, carbonData, selectedDate }: LocationCar
                 city: location.city,
             });
         }
-    }, [location, setLocationData]);
+    }, [location?.lat, location?.lng, location?.city, setLocationData]);
 
     useEffect(() => {
         if (location && airQualityData && ndviData) {
@@ -99,7 +99,7 @@ export function LocationCard({ location, carbonData, selectedDate }: LocationCar
                 selectedDate: selectedDate || new Date().toISOString().split('T')[0],
             });
         }
-    }, [location, airQualityData, ndviData, currentCO2ppm, assessment, selectedDate, setMapData]);
+    }, [location?.lat, location?.lng, airQualityData?.data?.current.carbon_dioxide, ndviData?.currentNDVI, assessment?.status, selectedDate, setMapData]);
 
     const statusConfig = {
         optimal: {
