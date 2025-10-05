@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 
 // Types
 interface NavbarProps {
@@ -55,11 +56,18 @@ const AnimatedNavLink = ({ href, children, onClick, isActive }: AnimatedNavLinkP
 
 // Component: Logo
 const Logo = () => (
-    <div className="flex items-center gap-2">
-        <div className="relative w-6 h-6 flex items-center justify-center">
-            <span className="text-2xl">🌱</span>
+    <div className="flex items-center gap-3">
+        <div className="relative w-10 h-10 flex items-center justify-center">
+            <Image
+                src="/image/logo_dashboard.png"
+                alt="Karwanua Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+                priority
+            />
         </div>
-        <span className="text-white font-bold text-base hidden sm:inline">EcoTrack</span>
+        <span className="text-white font-bold text-lg tracking-wide">KarWanua</span>
     </div>
 );
 

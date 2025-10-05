@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
         const response = await fetch(nominatimUrl, {
             headers: {
-                'User-Agent': 'EcoTrack-Carbon-Monitor/1.0'
+                'User-Agent': 'Karwanua-Carbon-Monitor/1.0'
             }
         });
 

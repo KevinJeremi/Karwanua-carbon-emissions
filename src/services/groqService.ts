@@ -170,7 +170,7 @@ Generate insights focusing on trends, risks, and recommendations.`;
 
         const systemMessage: GroqMessage = {
             role: "system",
-            content: `You are an expert climate science AI assistant for EcoTrack application.
+            content: `You are an expert climate science AI assistant for Karwanua application.
 You help users understand:
 - CO₂ emissions and air quality data from NASA satellites
 - NDVI (vegetation health) measurements from MODIS

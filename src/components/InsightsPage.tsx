@@ -78,10 +78,18 @@ export function InsightsPage({ onPageChange, currentPage }: InsightsPageProps) {
             });
 
             if (!response.ok) {
-                throw new Error("Failed to generate AI insights");
+                const errorData = await response.json().catch(() => ({}));
+                console.error("API Error Response:", errorData);
+                throw new Error(errorData.error || "Failed to generate AI insights");
             }
 
             const data = await response.json();
+
+            // Validate response has insights
+            if (!data.insights || !Array.isArray(data.insights)) {
+                console.error("Invalid response format:", data);
+                throw new Error("Invalid insights data received");
+            }
 
             // Add metadata to insights
             const enrichedInsights = data.insights.map((insight: ClimateInsight, index: number) => ({
@@ -97,9 +105,18 @@ export function InsightsPage({ onPageChange, currentPage }: InsightsPageProps) {
         } catch (err: any) {
             console.error("Failed to fetch AI insights:", err);
             setError(err.message || "Failed to generate insights");
-            // Clear data on error
-            setInsightsData([]);
-            setRecommendations([]);
+            // Set fallback data on error instead of empty
+            setInsightsData([
+                {
+                    id: 1,
+                    title: "🌍 Climate Monitoring Active",
+                    summary: "Real-time climate monitoring is active. AI analysis will be available once sufficient data is collected from NASA satellites and air quality sensors.",
+                    severity: "info",
+                    confidence: 70,
+                    tags: ["#monitoring", "#realtime"],
+                    date: "Just now"
+                }
+            ]);
         } finally {
             setIsLoadingInsights(false);
         }
@@ -152,8 +169,18 @@ export function InsightsPage({ onPageChange, currentPage }: InsightsPageProps) {
 
             <div className="max-w-7xl mx-auto px-6 py-6">
                 {/* Header Section */}
-                <section className="relative bg-gradient-to-br from-greenish-dark to-greenish-mid text-white rounded-3xl overflow-hidden shadow-2xl pb-32 mb-8">
-                    <div className="px-8 py-8">
+                <section
+                    className="relative text-white rounded-3xl overflow-hidden shadow-2xl pb-32 mb-8"
+                    style={{
+                        backgroundImage: 'url(/image/bg_Earth_Monitoring.jpg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat'
+                    }}
+                >
+                    {/* Dark overlay for better text visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-greenish-dark/85 via-greenish-dark/75 to-greenish-mid/85 rounded-3xl"></div>
+                    <div className="px-8 py-8 relative z-10">
                         <div className="flex flex-col md:flex-row justify-between items-start gap-8">
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-6">
@@ -409,10 +436,6 @@ export function InsightsPage({ onPageChange, currentPage }: InsightsPageProps) {
                                         />
                                     </div>
                                 </div>
-
-                                <button className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                                    View Details
-                                </button>
                             </motion.div>
                         ))}
                     </div>
@@ -455,21 +478,6 @@ export function InsightsPage({ onPageChange, currentPage }: InsightsPageProps) {
                                 </motion.div>
                             ))}
                         </div>
-                    </motion.div>
-                )}
-
-                {/* Export Report Button */}
-                {insightsData.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.9 }}
-                        className="flex justify-center"
-                    >
-                        <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl hover:from-emerald-700 hover:to-teal-700 transition-all">
-                            <Download size={20} />
-                            Generate AI Report (PDF)
-                        </button>
                     </motion.div>
                 )}
             </div>

@@ -95,9 +95,17 @@ export function MapPage({ onPageChange, currentPage }: MapPageProps) {
                     <motion.section
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-6"
+                        className="mb-6 relative rounded-3xl overflow-hidden"
+                        style={{
+                            backgroundImage: 'url(/image/bg_Earth_Monitoring.jpg)',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat'
+                        }}
                     >
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        {/* Dark overlay for better text visibility */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-greenish-dark/80 via-greenish-dark/70 to-greenish-mid/80"></div>
+                        <div className="relative z-10 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                     <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>

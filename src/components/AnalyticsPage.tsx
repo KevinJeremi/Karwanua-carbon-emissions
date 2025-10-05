@@ -189,8 +189,18 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
             <MiniNavbar currentPage={currentPage} onPageChange={onPageChange} />
 
             {/* Header Section */}
-            <section className="w-full relative bg-gradient-to-br from-greenish-dark to-greenish-mid text-white pt-24 pb-12">
-                <div className="max-w-7xl mx-auto px-6">
+            <section
+                className="w-full relative text-white pt-24 pb-12"
+                style={{
+                    backgroundImage: 'url(/image/bg_Earth_Monitoring.jpg)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                }}
+            >
+                {/* Dark overlay for better text visibility */}
+                <div className="absolute inset-0 bg-gradient-to-br from-greenish-dark/85 via-greenish-dark/75 to-greenish-mid/85"></div>
+                <div className="max-w-7xl mx-auto px-6 relative z-10">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-8">
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-4">
@@ -204,25 +214,6 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
 
                             {/* Quick Filter */}
                             <div className="flex flex-wrap items-center gap-4">
-                                <select
-                                    value={selectedRegion}
-                                    onChange={(e) => setSelectedRegion(e.target.value)}
-                                    className="px-4 py-2.5 bg-white/10 backdrop-blur-md border border-white/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 hover:bg-white/15 transition-all cursor-pointer"
-                                >
-                                    <option value="All Regions" className="bg-greenish-dark">All Regions</option>
-                                    <option value="Asia" className="bg-greenish-dark">Asia</option>
-                                    <option value="Europe" className="bg-greenish-dark">Europe</option>
-                                    <option value="North America" className="bg-greenish-dark">North America</option>
-                                    <option value="South America" className="bg-greenish-dark">South America</option>
-                                    <option value="Africa" className="bg-greenish-dark">Africa</option>
-                                    <option value="Oceania" className="bg-greenish-dark">Oceania</option>
-                                </select>
-
-                                <input
-                                    type="date"
-                                    className="px-4 py-2.5 bg-white/10 backdrop-blur-md border border-white/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 hover:bg-white/15 transition-all"
-                                />
-
                                 <button
                                     onClick={handleRefresh}
                                     disabled={isRefreshing}
@@ -509,7 +500,7 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.7 }}
-                    className="bg-gradient-to-br from-emerald-600/20 to-teal-600/20 backdrop-blur-md rounded-2xl p-8 border border-emerald-400/30 shadow-2xl"
+                    className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 backdrop-blur-md rounded-2xl p-8 border border-emerald-400/30 shadow-2xl"
                 >
                     <div className="flex items-start gap-4 mb-6">
                         <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
@@ -548,7 +539,7 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
                         </div>
                     </div>
 
-                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-4">
+                    <div className="bg-gray-900/40 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-4">
                         {isAnalyzingAI ? (
                             <div className="flex items-center justify-center gap-3 py-4">
                                 <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
@@ -594,7 +585,7 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.8 }}
-                    className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg overflow-hidden"
+                    className="bg-gray-900/60 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg overflow-hidden"
                 >
                     <h2 className="text-2xl font-bold text-white mb-6">Regional Emission Data</h2>
                     <div className="overflow-x-auto">

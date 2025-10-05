@@ -133,7 +133,7 @@ export default function Home() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-greenish-dark to-greenish-mid pt-20 overflow-x-hidden w-full">
+      <div className="min-h-screen bg-white pt-20 overflow-x-hidden w-full">
         <MiniNavbar currentPage={currentPage} onPageChange={handlePageChange} />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
@@ -207,7 +207,15 @@ function HeroSection({ onPageChange, metrics, loading, onRefresh, lastUpdated }:
   ];
 
   return (
-    <section className="w-full relative bg-gradient-to-br from-greenish-dark to-greenish-mid text-white rounded-3xl overflow-hidden shadow-2xl pb-32 mb-8">
+    <section
+      className="w-full relative text-white rounded-3xl overflow-hidden shadow-2xl pb-32 mb-8"
+      style={{
+        backgroundImage: 'linear-gradient(to bottom right, rgba(18, 48, 38, 0.9), rgba(18, 48, 38, 0.85)), url(/image/bg_Earth_Monitoring.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
       <div className="px-4 sm:px-8 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start gap-8">
           <div className="flex-1">
@@ -292,56 +300,13 @@ function HeroSection({ onPageChange, metrics, loading, onRefresh, lastUpdated }:
             </div>
           </div>
 
-          {/* Mini Globe Animation */}
-          <div className="relative flex-shrink-0">
-            {/* Animated rings */}
-            <motion.div
-              className="absolute inset-0 rounded-full border-2 border-emerald-300/20"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.6, 0.3]
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              style={{ width: '300px', height: '300px', left: '-14px', top: '-14px' }}
+          {/* Logo Dashboard */}
+          <div className="relative flex-shrink-0 flex items-center justify-center">
+            <ImageWithFallback
+              src="/image/logo_dashboard.png"
+              alt="Karwanua Logo"
+              className="w-[500px] h-auto"
             />
-            <motion.div
-              className="absolute inset-0 rounded-full border-2 border-emerald-400/30"
-              animate={{
-                scale: [1, 1.15, 1],
-                opacity: [0.4, 0.7, 0.4]
-              }}
-              transition={{
-                duration: 2.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 0.5
-              }}
-              style={{ width: '300px', height: '300px', left: '-14px', top: '-14px' }}
-            />
-
-            {/* Globe with spin animation */}
-            <motion.div
-              animate={{
-                rotate: 360
-              }}
-              transition={{
-                duration: 30,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-              className="relative z-10"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-greenish-light/30 to-white/30 rounded-full blur-2xl scale-125"></div>
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlYXJ0aCUyMGdsb2JlfGVufDF8fHx8MTc1OTU3NjMzOXww&ixlib=rb-4.1.0&q=80&w=1080"
-                alt="Earth Globe"
-                className="relative z-10 w-72 h-auto drop-shadow-2xl rounded-full"
-              />
-            </motion.div>
           </div>
         </div>
       </div>
@@ -568,7 +533,7 @@ function Footer() {
         <span>•</span>
         <button className="hover:text-greenish-dark transition-colors">Support</button>
       </div>
-      <p>Powered by {limitations.source} | EcoTrack Project</p>
+      <p>Powered by {limitations.source} | Karwanua Project</p>
     </motion.div>
   );
 }

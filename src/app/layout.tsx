@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EcoTrack - Real-time Carbon Monitoring",
+  title: "Karwanua - Real-time Carbon Monitoring",
   description: "Monitor real-time carbon emissions with GPS-based detection and WebGIS visualization",
 };
 

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Build system message with optional context
-        let systemContent = `You are an expert climate science AI assistant for EcoTrack application.
+        let systemContent = `You are an expert climate science AI assistant for Karwanua application.
 You help users understand:
 - CO₂ emissions and air quality data from Open-Meteo Air Quality API (real-time satellite data)
 - NDVI (vegetation health) measurements from NASA MODIS

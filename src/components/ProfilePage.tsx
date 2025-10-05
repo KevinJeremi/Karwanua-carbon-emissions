@@ -56,7 +56,7 @@ export function ProfilePage({ onPageChange, currentPage }: ProfilePageProps) {
                                 </div>
                                 <h2 className="text-2xl font-bold text-gray-800">John Doe</h2>
                                 <p className="text-gray-500 mt-1">Climate Researcher</p>
-                                <p className="text-gray-400 text-sm mt-2">john.doe@ecotrack.org</p>
+                                <p className="text-gray-400 text-sm mt-2">john.doe@karwanua.org</p>
                             </div>
 
                             {/* Quick Stats */}

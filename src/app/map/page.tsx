@@ -8,7 +8,7 @@ export default function MapPage() {
             <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white py-8 px-6 shadow-lg">
                 <div className="max-w-7xl mx-auto">
                     <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-                        🗺️ EcoTrack Interactive Map
+                        🗺️ Karwanua Interactive Map
                     </h1>
                     <p className="text-blue-100 text-lg">
                         Real-time satellite imagery & air quality monitoring powered by NASA GIBS & Open-Meteo
@@ -174,7 +174,7 @@ export default function MapPage() {
                 {/* Footer Note */}
                 <div className="text-center text-sm text-gray-500 py-4">
                     <p>
-                        🌍 EcoTrack combines cutting-edge satellite technology with real-time air quality monitoring
+                        🌍 Karwanua combines cutting-edge satellite technology with real-time air quality monitoring
                     </p>
                     <p className="mt-1">
                         Data updates: Satellite imagery (daily) | Air Quality (hourly)
