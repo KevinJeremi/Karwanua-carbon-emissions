@@ -96,14 +96,14 @@ export async function POST(request: NextRequest) {
 
         // Check if user is asking about their current location
         const isAskingCurrentLocation = /\b(tempat saya|lokasi saya|di sini|disini|my location|here|current location)\b/i.test(userQuery);
-        
+
         // Try to extract city names from query (support comparison queries)
         const cities = extractCitiesFromComparisonQuery(userQuery);
         let fetchedData = '';
 
         // Skip fetching if user has context data and is asking about current location
         const hasUserLocationData = systemContext && /Real-Time Environmental Data/i.test(systemContext);
-        
+
         if (cities.length > 0 && !(isAskingCurrentLocation && hasUserLocationData)) {
             console.log('🔍 Detected city query:', cities);
 
