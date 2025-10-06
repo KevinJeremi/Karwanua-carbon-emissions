@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { findCityCoordinates, extractCityFromQuery } from "../city-database";
+import { findCityCoordinates, extractCityFromQuery, extractCitiesFromComparisonQuery } from "../city-database";
 
 // Initialize Groq client
 const groq = new Groq({
@@ -16,14 +16,14 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  */
 async function fetchCO2Data(lat: number, lon: number, cityName: string): Promise<string> {
     const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)}`;
-    
+
     // Check cache first
     const cached = dataCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         console.log('✅ Using cached data for', cityName);
         return cached.data;
     }
-    
+
     try {
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
@@ -53,7 +53,7 @@ async function fetchCO2Data(lat: number, lon: number, cityName: string): Promise
 
             // Store in cache
             dataCache.set(cacheKey, { data: result, timestamp: Date.now() });
-            
+
             return result;
         }
 
@@ -81,22 +81,28 @@ export async function POST(request: NextRequest) {
         const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
         const userQuery = lastUserMessage?.content || '';
 
-        // Try to extract city name from query
-        const cityName = extractCityFromQuery(userQuery);
+        // Try to extract city names from query (support comparison queries)
+        const cities = extractCitiesFromComparisonQuery(userQuery);
         let fetchedData = '';
 
-        if (cityName) {
-            console.log('🔍 Detected city query:', cityName);
+        if (cities.length > 0) {
+            console.log('🔍 Detected city query:', cities);
 
-            // Find coordinates
-            const coords = findCityCoordinates(cityName);
+            // Fetch data for all cities mentioned
+            const dataPromises = cities.map(async (cityName) => {
+                const coords = findCityCoordinates(cityName);
+                if (coords) {
+                    console.log('✅ Found coordinates for', coords.name, ':', coords);
+                    return await fetchCO2Data(coords.lat, coords.lon, coords.name);
+                }
+                return null;
+            });
 
-            if (coords) {
-                console.log('✅ Found coordinates:', coords);
+            const results = await Promise.all(dataPromises);
+            fetchedData = results.filter(r => r !== null).join('\n\n');
 
-                // Proactively fetch CO2 data
-                fetchedData = await fetchCO2Data(coords.lat, coords.lon, coords.name);
-                console.log('📊 Fetched data:', fetchedData);
+            if (fetchedData) {
+                console.log('📊 Fetched data for', cities.length, 'city/cities');
             }
         }
 
@@ -183,13 +189,17 @@ ${fetchedData}
 - DO NOT modify, change, or generate a different number
 - DO NOT add +5 ppm or any variation
 - If user asks multiple times "cek lagi", give the SAME number (because real data doesn't change every second)
+- ALWAYS use DOT (.) as decimal separator, NEVER use comma (,)
+- Format: "457.0 ppm" ✅ NOT "457,0 ppm" ❌
 - Only present the data directly - no need to ask for permission
 
 Example correct response:
-"Berdasarkan data real-time dari Open-Meteo API, CO₂ di Jakarta saat ini adalah [EXACT VALUE FROM ABOVE] ppm."
+"Berdasarkan data real-time dari Open-Meteo API, CO₂ di Jakarta saat ini adalah 457.0 ppm."
 
-Example WRONG response (NEVER DO THIS):
-"CO₂ di Jakarta adalah 430 ppm" (when the fetched data says 425 ppm)
+Example WRONG responses (NEVER DO THIS):
+❌ "CO₂ di Jakarta adalah 430 ppm" (when the fetched data says 425.0 ppm)
+❌ "CO₂ di Jakarta adalah 457,0 ppm" (using comma instead of dot)
+❌ "CO₂ di Jakarta adalah 457 ppm" (missing .0 for consistency)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
         }
 
@@ -213,32 +223,53 @@ Example WRONG response (NEVER DO THIS):
 
         let response = chatCompletion.choices[0]?.message?.content || "";
 
-        // 🛡️ VALIDATION: Check if AI is making up CO₂ values
+        // 🛡️ NORMALIZE & VALIDATE RESPONSE
         if (fetchedData && response) {
-            // Extract CO₂ value from fetched data
-            const fetchedCO2Match = fetchedData.match(/Nilai CO₂: ([\d.]+) ppm/);
-            if (fetchedCO2Match) {
-                const actualCO2 = parseFloat(fetchedCO2Match[1]);
-                
-                // Check if response contains a different CO₂ value
-                const responseCO2Match = response.match(/(\d{3,4}(?:\.\d+)?)\s*ppm/g);
-                
+            // Extract ALL CO₂ values from fetched data
+            const fetchedCO2Matches = fetchedData.matchAll(/Nilai CO₂: ([\d.]+) ppm/g);
+            const actualCO2Values = Array.from(fetchedCO2Matches).map(m => parseFloat(m[1]));
+
+            if (actualCO2Values.length > 0) {
+                // Step 1: Normalize decimal separator (comma → dot)
+                response = response.replace(/(\d{3,4}),(\d+)\s*ppm/g, '$1.$2 ppm');
+
+                // Step 2: Add .0 to whole numbers for consistency (457 ppm → 457.0 ppm)
+                response = response.replace(/(\d{3,4})(\s+ppm)(?!\d)/g, (match, num, unit) => {
+                    // Only add .0 if it doesn't already have a decimal
+                    if (!num.includes('.')) {
+                        return `${num}.0${unit}`;
+                    }
+                    return match;
+                });
+
+                // Step 3: Check if AI is making up values
+                const responseCO2Match = response.match(/(\d{3,4}(?:[.,]\d+)?)\s*ppm/g);
+
                 if (responseCO2Match) {
-                    const responseCO2Values = responseCO2Match.map(m => parseFloat(m.match(/(\d{3,4}(?:\.\d+)?)/)?.[1] || '0'));
-                    
-                    // Check if AI is making up values (deviation > 1 ppm from actual)
-                    const hasFakeValue = responseCO2Values.some(val => Math.abs(val - actualCO2) > 1);
-                    
-                    if (hasFakeValue) {
+                    const responseCO2Values = responseCO2Match.map(m => {
+                        const numStr = m.match(/(\d{3,4}(?:[.,]\d+)?)/)?.[1] || '0';
+                        return parseFloat(numStr.replace(',', '.'));
+                    });
+
+                    // Check if AI is making up values
+                    // Only flag as fake if response value doesn't match ANY of the actual values (tolerance 1.0 ppm)
+                    const hasFakeValue = responseCO2Values.some(responseVal =>
+                        !actualCO2Values.some(actualVal => Math.abs(responseVal - actualVal) <= 1.0)
+                    );
+
+                    // Only override for single-city queries with fake values
+                    // Don't override comparison queries (multiple cities)
+                    if (hasFakeValue && actualCO2Values.length === 1) {
                         console.warn('⚠️ AI HALLUCINATION DETECTED! Correcting response...');
-                        console.warn('Actual CO₂:', actualCO2, 'AI said:', responseCO2Values);
-                        
+                        console.warn('Actual CO₂:', actualCO2Values, 'AI said:', responseCO2Values);
+
                         // Extract city name
                         const cityMatch = fetchedData.match(/Data CO₂ untuk (.+?):/);
                         const cityName = cityMatch ? cityMatch[1] : 'lokasi tersebut';
-                        
-                        // Force correct response
-                        response = `Berdasarkan data real-time dari Open-Meteo Air Quality API, CO₂ di ${cityName} saat ini adalah **${actualCO2.toFixed(1)} ppm**.
+                        const actualCO2 = actualCO2Values[0];
+
+                        // Force correct response with consistent formatting
+                        response = `Berdasarkan data real-time dari Open-Meteo Air Quality API, CO₂ di ${cityName} saat ini adalah ${actualCO2.toFixed(1)} ppm.
 
 ${actualCO2 < 415 ? '✅ Kualitas udara baik (di bawah rata-rata global 415 ppm)' : actualCO2 < 425 ? '⚠️ Kualitas udara sedang' : '🚨 Kualitas udara buruk (di atas rata-rata global)'}
 

@@ -116,3 +116,55 @@ export function extractCityFromQuery(query: string): string | null {
 
     return null;
 }
+
+/**
+ * Extract multiple cities from comparison query
+ * Example: "bandingkan CO₂ di Jakarta dengan Surabaya"
+ */
+export function extractCitiesFromComparisonQuery(query: string): string[] {
+    const normalizedQuery = query.toLowerCase();
+    const cities: string[] = [];
+
+    // Check if it's a comparison query
+    const isComparison = /bandingkan|compare|versus|vs|dengan|and/.test(normalizedQuery);
+    
+    if (!isComparison) {
+        const singleCity = extractCityFromQuery(query);
+        return singleCity ? [singleCity] : [];
+    }
+
+    // Pattern untuk comparison: "bandingkan X dengan Y" atau "X vs Y"
+    const comparisonPatterns = [
+        /(?:bandingkan|compare)\s+(?:co2|co₂)?\s*(?:di|at|in)?\s+([a-z\s]+?)\s+(?:dengan|dan|and|vs|versus)\s+([a-z\s]+)/i,
+        /(?:co2|co₂)\s+(?:di|at|in)\s+([a-z\s]+?)\s+(?:dengan|dan|and|vs|versus)\s+([a-z\s]+)/i,
+        /([a-z\s]+?)\s+(?:vs|versus)\s+([a-z\s]+)/i,
+    ];
+
+    for (const pattern of comparisonPatterns) {
+        const match = normalizedQuery.match(pattern);
+        if (match) {
+            const city1 = match[1]?.trim();
+            const city2 = match[2]?.trim();
+            
+            if (city1 && findCityCoordinates(city1)) {
+                cities.push(city1);
+            }
+            if (city2 && findCityCoordinates(city2)) {
+                cities.push(city2);
+            }
+            
+            if (cities.length > 0) {
+                return cities;
+            }
+        }
+    }
+
+    // Fallback: extract all city names mentioned in query
+    for (const cityKey of Object.keys(CITY_COORDINATES)) {
+        if (normalizedQuery.includes(cityKey)) {
+            cities.push(cityKey);
+        }
+    }
+
+    return cities.length > 0 ? cities : [];
+}
