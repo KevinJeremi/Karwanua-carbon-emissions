@@ -76,8 +76,8 @@ async function generateAlerts(): Promise<Alert[]> {
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
             : process.env.NEXT_PUBLIC_VERCEL_URL
-            ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-            : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+                ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+                : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
         // Fetch Regional Emissions data
         const regionalRes = await fetch(`${baseUrl}/api/regional-emissions`, {

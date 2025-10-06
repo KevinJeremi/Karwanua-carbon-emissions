@@ -31,8 +31,8 @@ async function fetchCO2Data(lat: number, lon: number, cityName: string): Promise
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
             : process.env.NEXT_PUBLIC_VERCEL_URL
-            ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-            : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+                ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+                : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
         const url = `${baseUrl}/api/air-quality?lat=${lat}&lon=${lon}&location=${encodeURIComponent(cityName)}`;
         const response = await fetch(url, { cache: 'no-store' });
