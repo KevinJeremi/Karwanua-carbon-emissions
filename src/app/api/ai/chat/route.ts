@@ -29,7 +29,7 @@ async function fetchCO2Data(lat: number, lon: number, cityName: string): Promise
         // In production: use the deployment URL from headers or environment
         // Locally: fallback to localhost
         let baseUrl: string;
-        
+
         if (process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
             // Use production URL from Vercel
             baseUrl = `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
@@ -94,11 +94,17 @@ export async function POST(request: NextRequest) {
         const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
         const userQuery = lastUserMessage?.content || '';
 
+        // Check if user is asking about their current location
+        const isAskingCurrentLocation = /\b(tempat saya|lokasi saya|di sini|disini|my location|here|current location)\b/i.test(userQuery);
+        
         // Try to extract city names from query (support comparison queries)
         const cities = extractCitiesFromComparisonQuery(userQuery);
         let fetchedData = '';
 
-        if (cities.length > 0) {
+        // Skip fetching if user has context data and is asking about current location
+        const hasUserLocationData = systemContext && /Real-Time Environmental Data/i.test(systemContext);
+        
+        if (cities.length > 0 && !(isAskingCurrentLocation && hasUserLocationData)) {
             console.log('🔍 Detected city query:', cities);
 
             // Fetch data for all cities mentioned
@@ -117,6 +123,8 @@ export async function POST(request: NextRequest) {
             if (fetchedData) {
                 console.log('📊 Fetched data for', cities.length, 'city/cities');
             }
+        } else if (isAskingCurrentLocation && hasUserLocationData) {
+            console.log('✅ User asking about current location - using context data instead of fetching');
         }
 
         // Build system message with optional context
@@ -218,7 +226,25 @@ Example WRONG responses (NEVER DO THIS):
 
         // Add user's current data context if available
         if (systemContext && systemContext.trim()) {
-            systemContent += `\n\n--- Current User Data (ALWAYS USE THIS DATA WHEN ANSWERING) ---\n${systemContext}\n\nWhen answering questions about "my location", "my area", "current CO₂", "berapa CO₂ di tempat saya", etc., ALWAYS use the CO₂ value from the "Real-Time Environmental Data" section above.`;
+            systemContent += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 REAL-TIME USER LOCATION DATA (HIGHEST PRIORITY)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${systemContext}
+
+🔴 CRITICAL INSTRUCTIONS FOR USER LOCATION QUERIES:
+1. When user asks "berapa co2 di tempat saya", "my location", "lokasi saya", "current co2", "di sini":
+   → YOU MUST USE THE EXACT CO₂ VALUE from the "Real-Time Environmental Data" section above
+   → DO NOT fetch new data, DO NOT use different coordinates
+   → The value in user context is MORE ACCURATE than fetched data
+2. DO NOT modify the CO₂ number from user context
+3. Present the data directly without asking questions
+4. Format response: "Berdasarkan data real-time dari Open-Meteo API, CO₂ di [LocationName] saat ini adalah [EXACT_VALUE] ppm."
+
+Example:
+User context shows: "CO₂: 432.0 ppm" for "Lalumpe"
+User asks: "berapa co2 di tempat saya"
+Correct answer: "Berdasarkan data real-time dari Open-Meteo API, CO₂ di Lalumpe saat ini adalah 432.0 ppm."
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
         }
 
         const systemMessage = {
