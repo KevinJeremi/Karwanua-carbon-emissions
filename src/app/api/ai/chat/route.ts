@@ -25,8 +25,13 @@ async function fetchCO2Data(lat: number, lon: number, cityName: string): Promise
     }
 
     try {
+        // Determine base URL for API calls
+        // In Vercel: VERCEL_URL is set automatically
+        // Locally: fallback to localhost
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
+            : process.env.NEXT_PUBLIC_VERCEL_URL
+            ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
             : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
         const url = `${baseUrl}/api/air-quality?lat=${lat}&lon=${lon}&location=${encodeURIComponent(cityName)}`;
