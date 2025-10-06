@@ -86,11 +86,21 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
                 }));
             }
 
-            // Fetch Alerts
-            const alertsRes = await fetch('/api/alerts?limit=3');
+            // Fetch AI-generated Alerts (using real data analysis)
+            const alertsRes = await fetch('/api/ai/alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    analyticsData: {
+                        co2Average: regionalJson.globalAverage?.co2,
+                        emissionChange: regionalJson.globalAverage?.emission,
+                        ndviIndex: regionalJson.globalAverage?.ndvi,
+                    }
+                })
+            });
             const alertsJson = await alertsRes.json();
-            if (alertsJson.success) {
-                setAlerts(alertsJson.alerts);
+            if (alertsJson.success && alertsJson.alerts) {
+                setAlerts(alertsJson.alerts.slice(0, 3));
             }
 
             // Fetch Emission Trends
@@ -500,7 +510,7 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.7 }}
-                    className="bg-gradient-to-br from-gray-900/80 to-gray-800/80 backdrop-blur-md rounded-2xl p-8 border border-emerald-400/30 shadow-2xl"
+                    className="bg-gradient-to-br from-emerald-600/20 to-teal-600/20 backdrop-blur-md rounded-2xl p-8 border border-emerald-400/30 shadow-2xl"
                 >
                     <div className="flex items-start gap-4 mb-6">
                         <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
@@ -539,7 +549,7 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
                         </div>
                     </div>
 
-                    <div className="bg-gray-900/40 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-4">
+                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 mb-4">
                         {isAnalyzingAI ? (
                             <div className="flex items-center justify-center gap-3 py-4">
                                 <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
@@ -585,7 +595,7 @@ export function AnalyticsPage({ currentPage, onPageChange }: AnalyticsPageProps)
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.8 }}
-                    className="bg-gray-900/60 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg overflow-hidden"
+                    className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg overflow-hidden"
                 >
                     <h2 className="text-2xl font-bold text-white mb-6">Regional Emission Data</h2>
                     <div className="overflow-x-auto">
