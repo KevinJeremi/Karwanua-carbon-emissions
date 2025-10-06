@@ -7,10 +7,23 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY || "",
 });
 
+// 🔄 Cache for CO2 data (prevent unnecessary API calls)
+const dataCache = new Map<string, { data: string; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 /**
- * Fetch CO2 data from API
+ * Fetch CO2 data from API with caching
  */
 async function fetchCO2Data(lat: number, lon: number, cityName: string): Promise<string> {
+    const cacheKey = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+    
+    // Check cache first
+    const cached = dataCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.log('✅ Using cached data for', cityName);
+        return cached.data;
+    }
+    
     try {
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
@@ -31,12 +44,17 @@ async function fetchCO2Data(lat: number, lon: number, cityName: string): Promise
             const globalAvg = 415;
             const diff = co2 - globalAvg;
 
-            return `✅ Data CO₂ untuk ${cityName}:
+            const result = `✅ Data CO₂ untuk ${cityName}:
 - Nilai CO₂: ${co2.toFixed(1)} ppm
 - Global Average: ${globalAvg} ppm
 - Status: ${diff > 0 ? `${diff.toFixed(1)} ppm di atas rata-rata global` : `${Math.abs(diff).toFixed(1)} ppm di bawah rata-rata global`}
 - Data Time: ${timestamp}
 - Kualitas Udara: ${co2 < 410 ? 'Baik ✅' : co2 < 420 ? 'Sedang ⚠️' : 'Buruk 🚨'}`;
+
+            // Store in cache
+            dataCache.set(cacheKey, { data: result, timestamp: Date.now() });
+            
+            return result;
         }
 
         return `⚠️ Data tidak tersedia untuk ${cityName}`;
@@ -90,11 +108,21 @@ You help users understand:
 - Temperature anomalies and climate trends
 - Environmental impacts and mitigation strategies
 
+🚨 CRITICAL RULES - NEVER VIOLATE THESE:
+1. NEVER MAKE UP CO₂ VALUES - You must ONLY use data provided in the "FRESHLY FETCHED DATA" section below
+2. NEVER MODIFY OR CHANGE the CO₂ numbers from the fetched data
+3. If you see "✅ Data CO₂ untuk [city]: - Nilai CO₂: X ppm", you MUST use EXACTLY that number X
+4. DO NOT generate different numbers each time, even if asked repeatedly
+5. DO NOT add random variations to the data
+6. DO NOT continue patterns from previous messages (e.g., if previous was 430, don't make it 435)
+7. If NO fresh data is provided, say "Saya tidak memiliki data terbaru untuk lokasi tersebut"
+
 CRITICAL DATA SOURCE INFORMATION:
 - ALL CO₂ data comes from Open-Meteo Air Quality API (https://open-meteo.com/en/docs/air-quality-api)
 - CO₂ values are measured in ppm (parts per million)
 - Current global average is approximately 415 ppm
 - Data is real-time and location-specific
+- The SAME location will return the SAME CO₂ value (it changes slowly over hours/days, not instantly)
 
 PROACTIVE BEHAVIOR:
 - When user asks about CO₂ in a specific city (e.g., "co2 di jakarta", "cek kalimantan"), I will AUTOMATICALLY fetch the data for them
@@ -145,7 +173,24 @@ IMPORTANT INSTRUCTIONS:
 
         // Add fetched data to system context
         if (fetchedData) {
-            systemContent += `\n\n--- FRESHLY FETCHED DATA (Use this!) ---\n${fetchedData}\n\nPresent this data directly to the user. No need to ask for permission or confirmation.`;
+            systemContent += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔥 FRESHLY FETCHED DATA - USE THIS EXACT DATA 🔥
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${fetchedData}
+
+⚠️ MANDATORY INSTRUCTIONS:
+- You MUST use the EXACT CO₂ value shown above
+- DO NOT modify, change, or generate a different number
+- DO NOT add +5 ppm or any variation
+- If user asks multiple times "cek lagi", give the SAME number (because real data doesn't change every second)
+- Only present the data directly - no need to ask for permission
+
+Example correct response:
+"Berdasarkan data real-time dari Open-Meteo API, CO₂ di Jakarta saat ini adalah [EXACT VALUE FROM ABOVE] ppm."
+
+Example WRONG response (NEVER DO THIS):
+"CO₂ di Jakarta adalah 430 ppm" (when the fetched data says 425 ppm)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
         }
 
         // Add user's current data context if available
@@ -161,12 +206,47 @@ IMPORTANT INSTRUCTIONS:
         const chatCompletion = await groq.chat.completions.create({
             messages: [systemMessage, ...messages],
             model: "llama-3.1-8b-instant", // Fast and free
-            temperature,
+            temperature: 0.3, // Lower temperature = more consistent, less creative
             max_tokens: maxTokens,
             top_p: 0.85,
         });
 
-        const response = chatCompletion.choices[0]?.message?.content || "";
+        let response = chatCompletion.choices[0]?.message?.content || "";
+
+        // 🛡️ VALIDATION: Check if AI is making up CO₂ values
+        if (fetchedData && response) {
+            // Extract CO₂ value from fetched data
+            const fetchedCO2Match = fetchedData.match(/Nilai CO₂: ([\d.]+) ppm/);
+            if (fetchedCO2Match) {
+                const actualCO2 = parseFloat(fetchedCO2Match[1]);
+                
+                // Check if response contains a different CO₂ value
+                const responseCO2Match = response.match(/(\d{3,4}(?:\.\d+)?)\s*ppm/g);
+                
+                if (responseCO2Match) {
+                    const responseCO2Values = responseCO2Match.map(m => parseFloat(m.match(/(\d{3,4}(?:\.\d+)?)/)?.[1] || '0'));
+                    
+                    // Check if AI is making up values (deviation > 1 ppm from actual)
+                    const hasFakeValue = responseCO2Values.some(val => Math.abs(val - actualCO2) > 1);
+                    
+                    if (hasFakeValue) {
+                        console.warn('⚠️ AI HALLUCINATION DETECTED! Correcting response...');
+                        console.warn('Actual CO₂:', actualCO2, 'AI said:', responseCO2Values);
+                        
+                        // Extract city name
+                        const cityMatch = fetchedData.match(/Data CO₂ untuk (.+?):/);
+                        const cityName = cityMatch ? cityMatch[1] : 'lokasi tersebut';
+                        
+                        // Force correct response
+                        response = `Berdasarkan data real-time dari Open-Meteo Air Quality API, CO₂ di ${cityName} saat ini adalah **${actualCO2.toFixed(1)} ppm**.
+
+${actualCO2 < 415 ? '✅ Kualitas udara baik (di bawah rata-rata global 415 ppm)' : actualCO2 < 425 ? '⚠️ Kualitas udara sedang' : '🚨 Kualitas udara buruk (di atas rata-rata global)'}
+
+💡 Data ini berasal langsung dari satelit dan sensor real-time, jadi nilainya konsisten saat dicek berulang kali.`;
+                    }
+                }
+            }
+        }
 
         return NextResponse.json({
             response,
