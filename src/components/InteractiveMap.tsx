@@ -6,6 +6,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Card } from '@/components/ui/card';
 import { useAirQuality } from '@/hooks/useAirQuality';
+import { useTemperatureData } from '@/hooks/useTemperatureData';
 import { NDVILegend } from '@/components/NDVILegend';
 import { NDVIGridOverlay } from '@/components/NDVIGridOverlay';
 import type { GIBSLayerType, MapLocation } from '@/types/gibs-layers';
@@ -395,6 +396,12 @@ function UserLocationMarker({
         date: selectedDate, // Use the same date as LocationCard
     });
 
+    // Get global temperature anomaly data
+    const { data: tempData, isLoading: isTempLoading } = useTemperatureData({
+        region: 'Global',
+        autoFetch: !!position,
+    });
+
     // Fetch reverse geocoding
     const fetchLocationName = async (lat: number, lng: number) => {
         try {
@@ -543,6 +550,21 @@ function UserLocationMarker({
 
                         <div className="text-xs text-gray-400 text-center pt-2 border-t">
                             🌫️ Real-time air quality data
+                        </div>
+
+                        {/* Temperature Anomaly Data */}
+                        <div className="pt-2 border-t mt-2">
+                            {isTempLoading ? (
+                                <p className="text-xs text-gray-500 italic">Memuat anomali suhu...</p>
+                            ) : tempData ? (
+                                <div className="bg-rose-50 p-2 rounded">
+                                     <div className="text-xs text-rose-600 font-semibold">🌡️ Global Temp Anomaly</div>
+                                     <div className="font-bold text-rose-900 text-sm">
+                                         {tempData.value > 0 ? '+' : ''}{tempData.value.toFixed(2)}°C
+                                         <span className="font-normal text-xs"> (vs 1951-1980 baseline)</span>
+                                     </div>
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 </div>
