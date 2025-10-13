@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Card } from '@/components/ui/card';
+import { LocationAlert } from '@/components/ui/alert';
 import { useAirQuality } from '@/hooks/useAirQuality';
 import { useTemperatureData } from '@/hooks/useTemperatureData';
 import { NDVILegend } from '@/components/NDVILegend';
@@ -265,6 +266,14 @@ function AirQualityMarker({ location, selectedDate }: { location: MapLocation; s
         date: selectedDate,
     });
 
+    // Get temperature anomaly data with location coordinates for region detection
+    const { data: tempData, isLoading: isTempLoading } = useTemperatureData({
+        region: 'Global',
+        autoFetch: true,
+        latitude: location.latitude,
+        longitude: location.longitude,
+    });
+
     // Custom icon based on air quality status
     const getMarkerIcon = () => {
         const color = assessment?.color || '#3b82f6';
@@ -308,42 +317,66 @@ function AirQualityMarker({ location, selectedDate }: { location: MapLocation; s
                     ) : data?.data ? (
                         <div className="space-y-2">
                             {assessment && (
-                                <div
-                                    className="p-2 rounded font-semibold text-white"
-                                    style={{ backgroundColor: assessment.color }}
-                                >
-                                    {assessment.status}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl">🌫️</span>
+                                    <div>
+                                        <h4 className="font-semibold">Air Quality</h4>
+                                        <div
+                                            className="font-semibold text-white px-2 py-1 rounded"
+                                            style={{ backgroundColor: assessment.color }}
+                                        >
+                                            {assessment.status}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <div className="text-xs text-gray-500">CO₂</div>
-                                    <div className="font-semibold">
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="bg-blue-50 p-2 rounded text-center">
+                                    <div className="text-xs text-blue-600 font-semibold">CO₂</div>
+                                    <div className="font-bold text-blue-900 text-sm">
                                         {data.data.current.carbon_dioxide?.toFixed(1) || 'N/A'} ppm
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="text-xs text-gray-500">PM2.5</div>
-                                    <div className="font-semibold">
+                                <div className="bg-orange-50 p-2 rounded text-center">
+                                    <div className="text-xs text-orange-600 font-semibold">PM2.5</div>
+                                    <div className="font-bold text-orange-900 text-sm">
                                         {data.data.current.pm2_5?.toFixed(1) || 'N/A'} μg/m³
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="text-xs text-gray-500">PM10</div>
-                                    <div className="font-semibold">
+                                <div className="bg-purple-50 p-2 rounded text-center">
+                                    <div className="text-xs text-purple-600 font-semibold">PM10</div>
+                                    <div className="font-bold text-purple-900 text-sm">
                                         {data.data.current.pm10?.toFixed(1) || 'N/A'} μg/m³
                                     </div>
                                 </div>
-                                <div>
-                                    <div className="text-xs text-gray-500">CO</div>
-                                    <div className="font-semibold">
+                                <div className="bg-red-50 p-2 rounded text-center">
+                                    <div className="text-xs text-red-600 font-semibold">CO</div>
+                                    <div className="font-bold text-red-900 text-sm">
                                         {data.data.current.carbon_monoxide?.toFixed(0) || 'N/A'} μg/m³
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="text-xs text-gray-500 mt-2">
+                            {/* Temperature Anomaly Section */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">🌡️</span>
+                                <div>
+                                    <h4 className="font-semibold">Temperature Anomaly</h4>
+                                    {isTempLoading ? (
+                                        <div className="text-gray-500 italic">Loading...</div>
+                                    ) : tempData ? (
+                                        <div className="font-bold text-red-600">
+                                            {tempData.value > 0 ? '+' : ''}{tempData.value.toFixed(2)}°C
+                                            <div className="text-xs text-gray-600">vs 1951-1980 baseline</div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-gray-500 italic">No data</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="text-xs text-gray-400 pt-2 border-t">
                                 Updated: {new Date(data.data.current.time).toLocaleString('id-ID')}
                             </div>
                         </div>
@@ -396,10 +429,12 @@ function UserLocationMarker({
         date: selectedDate, // Use the same date as LocationCard
     });
 
-    // Get global temperature anomaly data
+    // Get global temperature anomaly data with user coordinates for region detection
     const { data: tempData, isLoading: isTempLoading } = useTemperatureData({
         region: 'Global',
         autoFetch: !!position,
+        latitude: position ? position[0] : undefined,
+        longitude: position ? position[1] : undefined,
     });
 
     // Fetch reverse geocoding
@@ -492,82 +527,15 @@ function UserLocationMarker({
     return (
         <Marker position={position} icon={userIcon} zIndexOffset={1000}>
             <Popup>
-                <div className="min-w-[250px]">
-                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                        📍 Lokasi Anda
-                    </h3>
-
-                    <div className="text-sm space-y-2">
-                        <div className="pb-2 border-b">
-                            {isLoadingLocation ? (
-                                <p className="text-gray-500 italic">Memuat nama lokasi...</p>
-                            ) : (
-                                <p className="font-semibold text-base mb-1">{locationName}</p>
-                            )}
-                            <p className="text-gray-600">{position[0].toFixed(4)}°N, {position[1].toFixed(4)}°E</p>
-                        </div>
-
-                        {/* Air Quality Data */}
-                        {assessment && (
-                            <div
-                                className="p-2 rounded font-semibold text-white text-center"
-                                style={{ backgroundColor: assessment.color }}
-                            >
-                                Air Quality: {assessment.status}
-                            </div>
-                        )}
-
-                        {airQualityData?.data && (
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-blue-50 p-2 rounded">
-                                    <div className="text-xs text-blue-600 font-semibold">CO₂</div>
-                                    <div className="font-bold text-blue-900 text-sm">
-                                        {airQualityData.data.current.carbon_dioxide ?
-                                            airQualityData.data.current.carbon_dioxide.toFixed(1) : 'N/A'
-                                        } ppm
-                                    </div>
-                                </div>
-                                <div className="bg-orange-50 p-2 rounded">
-                                    <div className="text-xs text-orange-600 font-semibold">PM2.5</div>
-                                    <div className="font-bold text-orange-900 text-sm">
-                                        {airQualityData.data.current.pm2_5?.toFixed(1) || 'N/A'} μg/m³
-                                    </div>
-                                </div>
-                                <div className="bg-purple-50 p-2 rounded">
-                                    <div className="text-xs text-purple-600 font-semibold">PM10</div>
-                                    <div className="font-bold text-purple-900 text-sm">
-                                        {airQualityData.data.current.pm10?.toFixed(1) || 'N/A'} μg/m³
-                                    </div>
-                                </div>
-                                <div className="bg-red-50 p-2 rounded">
-                                    <div className="text-xs text-red-600 font-semibold">CO</div>
-                                    <div className="font-bold text-red-900 text-sm">
-                                        {airQualityData.data.current.carbon_monoxide?.toFixed(0) || 'N/A'} μg/m³
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="text-xs text-gray-400 text-center pt-2 border-t">
-                            🌫️ Real-time air quality data
-                        </div>
-
-                        {/* Temperature Anomaly Data */}
-                        <div className="pt-2 border-t mt-2">
-                            {isTempLoading ? (
-                                <p className="text-xs text-gray-500 italic">Memuat anomali suhu...</p>
-                            ) : tempData ? (
-                                <div className="bg-rose-50 p-2 rounded">
-                                     <div className="text-xs text-rose-600 font-semibold">🌡️ Global Temp Anomaly</div>
-                                     <div className="font-bold text-rose-900 text-sm">
-                                         {tempData.value > 0 ? '+' : ''}{tempData.value.toFixed(2)}°C
-                                         <span className="font-normal text-xs"> (vs 1951-1980 baseline)</span>
-                                     </div>
-                                </div>
-                            ) : null}
-                        </div>
-                    </div>
-                </div>
+                <LocationAlert
+                    locationName={locationName}
+                    coordinates={position}
+                    airQualityData={airQualityData?.data?.current}
+                    assessment={assessment}
+                    temperatureData={tempData}
+                    isTempLoading={isTempLoading}
+                    isLoadingLocation={isLoadingLocation}
+                />
             </Popup>
         </Marker>
     );
@@ -834,26 +802,89 @@ export default function InteractiveMap({
                     {/* NDVI Legend - Show when NDVI layer is active */}
                     {activeLayer === 'ndvi' && <NDVILegend isVisible={true} />}
 
-                    {/* Air Quality Legend - Show when not NDVI layer */}
+                    {/* Air Quality & Temperature Legend - Show when not NDVI layer */}
                     {activeLayer !== 'ndvi' && (
                         <Card className="absolute bottom-4 left-4 z-[1000] p-3 bg-white/95 backdrop-blur-sm shadow-lg">
-                            <div className="text-xs font-semibold mb-2">Air Quality Legend</div>
-                            <div className="space-y-1 text-xs">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                                    <span>Good (0-12 μg/m³)</span>
+                            <div className="text-xs font-semibold mb-2">Real-time Monitoring</div>
+                            
+                            {/* Air Quality Section */}
+                            <div className="mb-3">
+                                <div className="flex items-center gap-1 mb-2">
+                                    <span className="text-sm">🌫️</span>
+                                    <span className="text-xs font-semibold">Air Quality</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded-full bg-yellow-400"></div>
-                                    <span>Moderate (12-35 μg/m³)</span>
+                                <div className="space-y-1 text-xs ml-5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                        <span>Good (0-12 μg/m³)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                        <span>Moderate (12-35 μg/m³)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                        <span>Unhealthy (35-55 μg/m³)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                        <span>Very Unhealthy (55+ μg/m³)</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded-full bg-orange-500"></div>
-                                    <span>Unhealthy (35-55 μg/m³)</span>
+                            </div>
+
+                            {/* Temperature Section */}
+                            <div className="border-t pt-2">
+                                <div className="flex items-center gap-1 mb-2">
+                                    <span className="text-sm">🌡️</span>
+                                    <span className="text-xs font-semibold">Temperature Anomaly</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                                    <span>Very Unhealthy (55+ μg/m³)</span>
+                                <div className="space-y-1 text-xs ml-5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-green-500"></div>
+                                        <span>Cool (&lt;-0.5°C)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-blue-400"></div>
+                                        <span>Normal (-0.5 to 1.0°C)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-orange-500"></div>
+                                        <span>Warning (1.0 to 2.0°C)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-red-600"></div>
+                                        <span>Critical (≥2.0°C)</span>
+                                    </div>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-2 ml-5">
+                                    vs 1951-1980 baseline
+                                </div>
+                            </div>
+
+                            {/* NDVI Section */}
+                            <div className="border-t pt-2">
+                                <div className="flex items-center gap-1 mb-2">
+                                    <span className="text-sm">🌳</span>
+                                    <span className="text-xs font-semibold">Vegetation Health</span>
+                                </div>
+                                <div className="space-y-1 text-xs ml-5">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-red-400"></div>
+                                        <span>Poor (&lt;0.2)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-yellow-400"></div>
+                                        <span>Modest (0.2-0.4)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-green-400"></div>
+                                        <span>Good (0.4-0.6)</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded bg-green-600"></div>
+                                        <span>Excellent (&gt;0.6)</span>
+                                    </div>
                                 </div>
                             </div>
                         </Card>
